@@ -40,3 +40,4 @@ storybook-static
 
 # visual regression test
 __screenshots__
+.reg

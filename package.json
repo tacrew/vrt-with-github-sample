@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "download:chromium": "node node_modules/puppeteer/install.js",
+    "download:chromium": "node node_modules/puppeteer/install.mjs",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
     "storybook:start": "npx http-server storybook-static --ci -p 9001",

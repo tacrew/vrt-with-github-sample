@@ -240,5 +240,5 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             reg-suit report
-            https://funteractive-inc.github.io/ocapi-frontend/${{github.head_ref}}
+            https://funteractive-inc.github.io/vrt-with-github-sample/${{github.head_ref}}
           edit-mode: replace

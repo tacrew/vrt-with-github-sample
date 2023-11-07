@@ -1,0 +1,27 @@
+name: 'cache expected screenshots'
+description: 'cache expected screenshots'
+inputs:
+  lookup-only:
+    description: If true, only checks if cache entry exists and skips download.
+    default: 'false'
+    required: false
+outputs:
+  cache-hit:
+    description: 'screenshots cache hit result'
+    value: ${{ steps.expected_screenshots_cache_id.outputs.cache-hit }}
+runs:
+  using: 'composite'
+  steps:
+    - name: get commit hash of current branch
+      id: get_hash
+      run: echo "hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - uses: actions/cache@v3
+      id: expected_screenshots_cache_id
+      env:
+        cache-name: cache-expected_screenshots
+      with:
+        path: .reg/
+        key: ${{ runner.os }}-screenshots-${{ steps.get_hash.outputs.hash }}
+        lookup-only: ${{ inputs.lookup-only == 'true' }}

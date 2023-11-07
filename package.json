@@ -6,22 +6,46 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "download:chromium": "node node_modules/puppeteer/install.js",
+    "storybook": "storybook dev -p 6006",
+    "storybook:build": "storybook build",
+    "storybook:start": "npx http-server storybook-static --ci -p 9001",
+    "storybook:screenshot": "storycap http://127.0.0.1:9001 --disableCssAnimation false -C puppeteer --serverCmd \"yarn storybook:start\"",
+    "test:vrt": "reg-suit run"
   },
   "dependencies": {
+    "next": "14.0.1",
     "react": "^18",
-    "react-dom": "^18",
-    "next": "14.0.1"
+    "react-dom": "^18"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@storybook/addon-essentials": "^7.5.3",
+    "@storybook/addon-interactions": "^7.5.3",
+    "@storybook/addon-links": "^7.5.3",
+    "@storybook/nextjs": "^7.5.3",
+    "@storybook/react": "^7.5.3",
+    "@storybook/testing-library": "^0.2.2",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
-    "postcss": "^8",
-    "tailwindcss": "^3.3.0",
     "eslint": "^8",
-    "eslint-config-next": "14.0.1"
+    "eslint-config-next": "14.0.1",
+    "eslint-plugin-storybook": "^0.6.15",
+    "http-server": "14.1.1",
+    "postcss": "^8",
+    "puppeteer": "21.5.0",
+    "reg-keygen-git-hash-plugin": "0.12.2",
+    "reg-notify-github-plugin": "0.12.2",
+    "reg-suit": "0.12.2",
+    "storybook": "^7.5.3",
+    "storycap": "4.2.0",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5"
+  },
+  "volta": {
+    "node": "20.9.0",
+    "yarn": "4.0.1"
   }
 }

@@ -1,0 +1,21 @@
+name: 'cache storybook build'
+description: 'cache storybook build result'
+outputs:
+  cache-hit:
+    description: 'storybook build cache hit result'
+    value: ${{ steps.storybook_build_result_id.outputs.cache-hit }}
+runs:
+  using: 'composite'
+  steps:
+    - name: get commit hash of current branch
+      id: get_hash
+      run: echo "hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - uses: actions/cache@v3
+      id: storybook_build_result_id
+      env:
+        cache-name: cache-storybook_build_result
+      with:
+        path: storybook-static/
+        key: ${{ runner.os }}-storybook-static-${{ steps.get_hash.outputs.hash  }}

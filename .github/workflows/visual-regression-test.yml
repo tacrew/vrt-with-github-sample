@@ -2,7 +2,7 @@ name: visual-regression-test
 on:
   pull_request:
     branches:
-      - develop
+      - main
 defaults:
   run:
     shell: bash

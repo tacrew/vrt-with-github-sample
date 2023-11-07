@@ -1,0 +1,244 @@
+name: visual-regression-test
+on:
+  pull_request:
+    branches:
+      - develop
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check_expected_screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: volta-cli/action@v4
+      - uses: actions/checkout@v3
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: restore cached expected screenshots
+        id: screenshots_cache
+        uses: ./.github/actions/cache-screenshots
+        with:
+          lookup-only: 'true'
+
+      - name: restore cached node_modules
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/cache-node-modules
+
+      - name: cache storybook build result
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        id: storybook_result_cache
+        uses: ./.github/actions/cache-storybook-build-result
+
+      - name: storybook build
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' && steps.storybook_result_cache.outputs.cache-hit != 'true' }}
+        run: yarn storybook:build
+        env:
+          NEXT_IS_TEST: 'true'
+
+  take_expected_screenshots:
+    needs: check_expected_screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        shard: [1/4, 2/4, 3/4, 4/4]
+
+    steps:
+      - uses: volta-cli/action@v4
+      - uses: actions/checkout@v3
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: restore cached expected screenshots
+        id: screenshots_cache
+        uses: ./.github/actions/cache-screenshots
+        with:
+          lookup-only: 'false'
+
+      - name: restore cached node_modules
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/cache-node-modules
+
+      - name: cache storybook build result
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        id: storybook_result_cache
+        uses: ./.github/actions/cache-storybook-build-result
+
+      - name: prepare for screenshots
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/prepare-screenshots
+
+      - name: take screenshots
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        run: yarn storybook:screenshot --shard=${{ matrix.shard }}
+
+      - name: upload screenshots
+        uses: actions/upload-artifact@v3
+        with:
+          name: expected-screenshots
+          path: __screenshots__
+          retention-days: 1
+
+  check_actual_screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: volta-cli/action@v4
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: workaround for detached HEAD
+        run: |
+          git checkout ${GITHUB_HEAD_REF#refs/heads/} || git checkout -b ${GITHUB_HEAD_REF#refs/heads/} && git pull
+
+      - name: restore cached actual screenshots
+        id: screenshots_cache
+        uses: ./.github/actions/cache-screenshots
+        with:
+          lookup-only: 'true'
+
+      - name: restore cached node_modules
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/cache-node-modules
+
+      - name: cache storybook build result
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        id: storybook_result_cache
+        uses: ./.github/actions/cache-storybook-build-result
+
+      - name: storybook build
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' && steps.storybook_result_cache.outputs.cache-hit != 'true' }}
+        run: yarn storybook:build
+        env:
+          NEXT_IS_TEST: 'true'
+
+  take_actual_screenshots:
+    needs: check_actual_screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        shard: [1/4, 2/4, 3/4, 4/4]
+
+    steps:
+      - uses: volta-cli/action@v4
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: workaround for detached HEAD
+        run: |
+          git checkout ${GITHUB_HEAD_REF#refs/heads/} || git checkout -b ${GITHUB_HEAD_REF#refs/heads/} && git pull
+
+      - name: restore cached actual screenshots
+        id: screenshots_cache
+        uses: ./.github/actions/cache-screenshots
+        with:
+          lookup-only: 'false'
+
+      - name: restore cached node_modules
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/cache-node-modules
+
+      - name: cache storybook build result
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        id: storybook_result_cache
+        uses: ./.github/actions/cache-storybook-build-result
+
+      - name: prepare for screenshots
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/prepare-screenshots
+
+      - name: take screenshots
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        run: yarn storybook:screenshot --shard=${{ matrix.shard }}
+
+      - name: upload screenshots
+        uses: actions/upload-artifact@v3
+        with:
+          name: actual-screenshots
+          path: __screenshots__
+          retention-days: 1
+
+  run_reg_suit:
+    needs:
+      - take_expected_screenshots
+      - take_actual_screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: volta-cli/action@v4
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: restore cached expected screenshots
+        id: screenshots_cache
+        uses: ./.github/actions/cache-screenshots
+        with:
+          lookup-only: 'false'
+
+      - name: download expected screenshots
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        uses: actions/download-artifact@v3
+        with:
+          name: expected-screenshots
+          path: __screenshots__
+
+      - name: set reg-suit expected
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        run: |
+          rm -rf .reg/expected/
+          mkdir -p .reg/expected
+          mv -f __screenshots__/* .reg/expected/
+          ls -l .reg/
+
+      - name: download actual screenshots
+        uses: actions/download-artifact@v3
+        with:
+          name: actual-screenshots
+          path: __screenshots__
+
+      - name: restore cached node_modules
+        if: ${{ steps.screenshots_cache.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/cache-node-modules
+
+      - name: workaround for detached HEAD
+        run: |
+          git checkout ${GITHUB_HEAD_REF#refs/heads/} || git checkout -b ${GITHUB_HEAD_REF#refs/heads/} && git pull
+
+      - name: run reg-suit
+        run: yarn test:vrt
+
+      - name: deploy report to github page
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .reg/
+          destination_dir: ${{ github.head_ref  }}
+
+      - name: find comment
+        uses: peter-evans/find-comment@v2
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: reg-suit report
+
+      - name: upsert comment
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            reg-suit report
+            https://funteractive-inc.github.io/ocapi-frontend/${{github.head_ref}}
+          edit-mode: replace

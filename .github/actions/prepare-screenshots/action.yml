@@ -1,0 +1,12 @@
+name: 'prepare for screenshots'
+description: 'prepare for screenshots'
+runs:
+  using: 'composite'
+  steps:
+    - name: download chromium
+      run: yarn download:chromium
+      shell: bash
+
+    - name: install native dependencies
+      run: sudo apt-get install fonts-ipafont-gothic
+      shell: bash

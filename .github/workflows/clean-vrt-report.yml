@@ -1,0 +1,37 @@
+name: clean-vrt-report-branch
+on:
+  pull_request:
+    types: [closed]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  delete-dir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: delete closed pr branch directory
+        run: |
+          if [[ "${{ github.head_ref }}" != "" ]]; then
+            rm -rf "./${{ github.head_ref }}"
+          fi
+
+      - name: check if there were changes
+        id: git_diff
+        run: |
+          git diff --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push
+        if: steps.git_diff.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git commit -m "delete ${{ github.head_ref }} directory"
+          git push
